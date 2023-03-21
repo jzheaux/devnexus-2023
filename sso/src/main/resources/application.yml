@@ -1,0 +1,15 @@
+server:
+  port: 9000
+
+logging:
+  level:
+    org.springframework.security: trace
+
+spring:
+  security:
+    saml2:
+      relyingparty:
+        registration:
+          okta:
+            assertingparty:
+              metadata-uri: https://dev-70721243.okta.com/app/exk8tis8tkIRgJXzR5d7/sso/saml/metadata

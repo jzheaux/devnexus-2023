@@ -1,0 +1,7 @@
+.btn[role="link"] {
+    text-transform: none;
+}
+
+.btn[role="link"] > img {
+    margin-right: 5px;
+}

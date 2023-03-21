@@ -1,0 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;0,800;1,300;1,400;1,600;1,700;1,800&display=swap');
+
+html {
+    font-family: "Open Sans", sans-serif;
+}
+a, h1, h2, h3, h4, h5, h6 {
+    font-family: "Open Sans", sans-serif;
+}
+.navbar {
+    background-color: transparent;
+}
+.navbar-brand {
+    min-height: 68px;
+    padding: 8px;
+}
+.nav > li > a {
+    background-color: inherit !important;
+    color: #191e1e !important;
+    font-weight: 700;
+    line-height: 38px;
+}
+.nav > li > a:hover {
+    color: #6db33f !important;
+}
+footer {
+    padding-top: 8px;
+}
