@@ -6,12 +6,12 @@ import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Role;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -30,6 +30,11 @@ import org.springframework.security.oauth2.server.authorization.settings.ClientS
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.context.DelegatingSecurityContextRepository;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
+import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -39,13 +44,9 @@ import java.util.UUID;
 
 import static org.springframework.beans.factory.config.BeanDefinition.ROLE_INFRASTRUCTURE;
 
+@Configuration
 @EnableWebSecurity
 public class SecurityConfiguration {
-
-	@Bean
-	public WebSecurityCustomizer webSecurityCustomizer() {
-		return (web) -> web.ignoring().antMatchers("/webjars/**", "/assets/**", "/favicon.ico");
-	}
 
 	@Bean
 	@Order(1)
@@ -53,8 +54,24 @@ public class SecurityConfiguration {
 		OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
 		http.getConfigurer(OAuth2AuthorizationServerConfigurer.class).oidc(Customizer.withDefaults());
 
+		HttpSessionRequestCache requestCache = new HttpSessionRequestCache();
+		requestCache.setMatchingRequestParameterName("continue");
+
 		// @formatter:off
 		http
+			.securityContext((securityContext) -> securityContext
+				.requireExplicitSave(true)
+				.securityContextRepository(new DelegatingSecurityContextRepository(
+					new RequestAttributeSecurityContextRepository(),
+					new HttpSessionSecurityContextRepository()
+				))
+			)
+			.requestCache((cache) -> cache
+				.requestCache(requestCache)
+			)
+			.sessionManagement((sessions) -> sessions
+				.requireExplicitAuthenticationStrategy(true)
+			)
 			.oauth2ResourceServer((oauth2) -> oauth2
 				.jwt(Customizer.withDefaults())
 			)
@@ -69,11 +86,35 @@ public class SecurityConfiguration {
 	@Bean
 	@Order(2)
 	public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+		HttpSessionRequestCache requestCache = new HttpSessionRequestCache();
+		requestCache.setMatchingRequestParameterName("continue");
+
+		XorCsrfTokenRequestAttributeHandler requestHandler = new XorCsrfTokenRequestAttributeHandler();
+		// set the name of the attribute the CsrfToken will be populated on
+		requestHandler.setCsrfRequestAttributeName("_csrf");
+
 		// @formatter:off
 		http
-			.authorizeRequests((authorize) -> authorize
-				.antMatchers("/login").permitAll()
+			.authorizeHttpRequests((authorize) -> authorize
+				.shouldFilterAllDispatcherTypes(true)
+				.requestMatchers("/login", "/webjars/**", "/assets/**", "/favicon.ico").permitAll()
 				.anyRequest().authenticated()
+			)
+			.securityContext((securityContext) -> securityContext
+				.requireExplicitSave(true)
+				.securityContextRepository(new DelegatingSecurityContextRepository(
+					new RequestAttributeSecurityContextRepository(),
+					new HttpSessionSecurityContextRepository()
+				))
+			)
+			.requestCache((cache) -> cache
+				.requestCache(requestCache)
+			)
+			.sessionManagement((sessions) -> sessions
+				.requireExplicitAuthenticationStrategy(true)
+			)
+			.csrf((csrf) -> csrf
+				.csrfTokenRequestHandler(requestHandler)
 			)
 			.formLogin((formLogin) -> formLogin.loginPage("/login"))
 			.saml2Login((saml2Login) -> saml2Login.loginPage("/login"))

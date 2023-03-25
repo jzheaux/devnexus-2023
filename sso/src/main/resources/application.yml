@@ -13,3 +13,10 @@ spring:
           okta:
             assertingparty:
               metadata-uri: https://dev-70721243.okta.com/app/exk8tis8tkIRgJXzR5d7/sso/saml/metadata
+    filter:
+      dispatcher-types:
+        - request
+        - async
+        - error
+        - forward
+        - include
