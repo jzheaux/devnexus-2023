@@ -14,7 +14,7 @@ spring:
             provider: spring
             client-id: air-traffic-control
             client-secret: secret
-            #client-authentication-method: basic
+            #client-authentication-method: client_secret_basic
             scope: openid,flights:read,flights:write
             client-name: Spring
         provider:
