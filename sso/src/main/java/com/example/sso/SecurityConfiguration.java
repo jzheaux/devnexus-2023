@@ -30,11 +30,6 @@ import org.springframework.security.oauth2.server.authorization.settings.ClientS
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
-import org.springframework.security.web.context.DelegatingSecurityContextRepository;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
-import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
-import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -54,33 +49,8 @@ public class SecurityConfiguration {
 		OAuth2AuthorizationServerConfiguration.applyDefaultSecurity(http);
 		http.getConfigurer(OAuth2AuthorizationServerConfigurer.class).oidc(Customizer.withDefaults());
 
-		HttpSessionRequestCache requestCache = new HttpSessionRequestCache();
-		// **** Enable optimized querying of the RequestCache ****
-		// https://docs.spring.io/spring-security/reference/5.8/migration/servlet/session-management.html#requestcache-query-optimization
-		requestCache.setMatchingRequestParameterName("continue");
-
 		// @formatter:off
 		http
-			.securityContext((securityContext) -> securityContext
-				// **** Enable writing the SecurityContext to HttpSession explicitly ****
-				// https://docs.spring.io/spring-security/reference/5.8/migration/servlet/session-management.html#_require_explicit_saving_of_securitycontextrepository
-				.requireExplicitSave(true)
-				// **** Enable propagating SecurityContext to other dispatch types (e.g. forward) ****
-				// https://docs.spring.io/spring-security/reference/5.8/migration/servlet/session-management.html#_change_httpsessionsecuritycontextrepository_to_delegatingsecuritycontextrepository
-				.securityContextRepository(new DelegatingSecurityContextRepository(
-					new RequestAttributeSecurityContextRepository(),
-					new HttpSessionSecurityContextRepository()
-				))
-			)
-			.requestCache((cache) -> cache
-				// **** Use customized RequestCache ****
-				.requestCache(requestCache)
-			)
-			.sessionManagement((sessions) -> sessions
-				// **** Enable invocation of the SessionAuthenticationStrategy explicitly ****
-				// https://docs.spring.io/spring-security/reference/5.8/migration/servlet/session-management.html#_require_explicit_invocation_of_sessionauthenticationstrategy
-				.requireExplicitAuthenticationStrategy(true)
-			)
 			.oauth2ResourceServer((oauth2) -> oauth2
 				.jwt(Customizer.withDefaults())
 			)
@@ -95,50 +65,11 @@ public class SecurityConfiguration {
 	@Bean
 	@Order(2)
 	public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
-		HttpSessionRequestCache requestCache = new HttpSessionRequestCache();
-		// **** Enable optimized querying of the RequestCache ****
-		// https://docs.spring.io/spring-security/reference/5.8/migration/servlet/session-management.html#requestcache-query-optimization
-		requestCache.setMatchingRequestParameterName("continue");
-
-		// **** Enable BREACH protection of the CsrfToken ****
-		// https://docs.spring.io/spring-security/reference/5.8/migration/servlet/exploits.html#_protect_against_csrf_breach
-		XorCsrfTokenRequestAttributeHandler requestHandler = new XorCsrfTokenRequestAttributeHandler();
-		// **** Enable deferred loading of the CsrfToken ****
-		// https://docs.spring.io/spring-security/reference/5.8/migration/servlet/exploits.html#_defer_loading_csrftoken
-		requestHandler.setCsrfRequestAttributeName("_csrf");
-
 		// @formatter:off
 		http
 			.authorizeHttpRequests((authorize) -> authorize
-				// **** Enable filtering on all dispatcher types ****
-				// https://docs.spring.io/spring-security/reference/5.8/migration/servlet/authorization.html#switch-filter-all-dispatcher-types
-				.shouldFilterAllDispatcherTypes(true)
 				.requestMatchers("/login", "/webjars/**", "/assets/**", "/favicon.ico").permitAll()
 				.anyRequest().authenticated()
-			)
-			.securityContext((securityContext) -> securityContext
-				// **** Enable writing the SecurityContext to HttpSession explicitly ****
-				// https://docs.spring.io/spring-security/reference/5.8/migration/servlet/session-management.html#_require_explicit_saving_of_securitycontextrepository
-				.requireExplicitSave(true)
-				// **** Enable propagating SecurityContext to other dispatch types (e.g. forward) ****
-				// https://docs.spring.io/spring-security/reference/5.8/migration/servlet/session-management.html#_change_httpsessionsecuritycontextrepository_to_delegatingsecuritycontextrepository
-				.securityContextRepository(new DelegatingSecurityContextRepository(
-					new RequestAttributeSecurityContextRepository(),
-					new HttpSessionSecurityContextRepository()
-				))
-			)
-			.requestCache((cache) -> cache
-				// **** Use customized RequestCache ****
-				.requestCache(requestCache)
-			)
-			.sessionManagement((sessions) -> sessions
-				// **** Enable invocation of the SessionAuthenticationStrategy explicitly ****
-				// https://docs.spring.io/spring-security/reference/5.8/migration/servlet/session-management.html#_require_explicit_invocation_of_sessionauthenticationstrategy
-				.requireExplicitAuthenticationStrategy(true)
-			)
-			.csrf((csrf) -> csrf
-				// **** Use customized CsrfTokenRequestHandler ****
-				.csrfTokenRequestHandler(requestHandler)
 			)
 			.formLogin((formLogin) -> formLogin.loginPage("/login"))
 			.saml2Login((saml2Login) -> saml2Login.loginPage("/login"))
