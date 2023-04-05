@@ -2,7 +2,7 @@ package com.example.api;
 
 import java.util.List;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.core.Authentication;
