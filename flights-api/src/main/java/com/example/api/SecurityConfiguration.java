@@ -1,8 +1,10 @@
 package com.example.api;
 
+import io.micrometer.observation.ObservationRegistry;
 import org.springframework.aop.Advisor;
 import org.springframework.aop.Pointcut;
 import org.springframework.aop.support.annotation.AnnotationMatchingPointcut;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
@@ -11,6 +13,7 @@ import org.springframework.context.annotation.Role;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.authorization.AuthorizationManager;
+import org.springframework.security.authorization.ObservationAuthorizationManager;
 import org.springframework.security.authorization.method.AuthorizationManagerAfterMethodInterceptor;
 import org.springframework.security.authorization.method.MethodInvocationResult;
 import org.springframework.security.authorization.method.PostAuthorizeAuthorizationManager;
@@ -47,15 +50,16 @@ public class SecurityConfiguration {
 		return (authentication, object) -> new AuthorizationDecision("josh".equals(authentication.get().getName()));
 	}
 
-	static AuthorizationManager<MethodInvocationResult> postAuthorize() {
-		return anyOf(isJosh(), new PostAuthorizeAuthorizationManager());
+	static AuthorizationManager<MethodInvocationResult> postAuthorize(ObjectProvider<ObservationRegistry> registry) {
+		AuthorizationManager<MethodInvocationResult> authz = anyOf(isJosh(), new PostAuthorizeAuthorizationManager());
+		return new SupplierAuthorizationManager<>(() -> new ObservationAuthorizationManager<>(registry.getObject(), authz));
 	}
 
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	static Advisor postAuthorizeMethodInterceptor() {
+	static Advisor postAuthorizeMethodInterceptor(ObjectProvider<ObservationRegistry> registry) {
 		Pointcut pattern = new AnnotationMatchingPointcut(null, PostAuthorize.class);
-		return new AuthorizationManagerAfterMethodInterceptor(pattern, postAuthorize());
+		return new AuthorizationManagerAfterMethodInterceptor(pattern, postAuthorize(registry));
 	}
 
 	@Bean
