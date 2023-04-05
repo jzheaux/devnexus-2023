@@ -33,3 +33,6 @@ spring:
           uri: forward:/index.html
           predicates:
             - Path=/app/**
+
+management.endpoints.web.exposure.include: metrics
+management.tracing.sampling.probability: 1.0

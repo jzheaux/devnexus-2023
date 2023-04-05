@@ -20,3 +20,6 @@ spring:
         - error
         - forward
         - include
+
+management.endpoints.web.exposure.include: metrics
+management.tracing.sampling.probability: 1.0

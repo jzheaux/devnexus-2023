@@ -12,3 +12,6 @@ logging:
   level:
     org.springframework.security: TRACE
     org.springframework.security.access: INFO
+
+management.endpoints.web.exposure.include: metrics
+management.tracing.sampling.probability: 1.0
