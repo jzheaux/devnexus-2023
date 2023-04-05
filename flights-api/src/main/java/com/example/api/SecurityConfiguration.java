@@ -3,7 +3,8 @@ package com.example.api;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
+import org.springframework.security.authorization.AuthorizationDecision;
+import org.springframework.security.authorization.AuthorizationManager;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -12,7 +13,9 @@ import org.springframework.security.config.annotation.web.configurers.oauth2.ser
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.access.expression.WebExpressionAuthorizationManager;
+
+import static org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority;
+import static org.springframework.security.authorization.AuthorizationManagers.allOf;
 
 @Configuration
 @EnableWebSecurity
@@ -30,13 +33,17 @@ public class SecurityConfiguration {
 		});
 	}
 
+	static <T> AuthorizationManager<T> isJosh() {
+		return (authentication, object) -> new AuthorizationDecision("josh".equals(authentication.get().getName()));
+	}
+
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		// @formatter:off
 		http
 			.authorizeHttpRequests((authz) -> authz
-				.requestMatchers("/flights/all").access(new WebExpressionAuthorizationManager("hasAuthority('flights:read') and authentication.name == 'josh'"))
-				.requestMatchers("/flights/*/take-off").access(new WebExpressionAuthorizationManager("hasAuthority('flights:write') and authentication.name == 'josh'"))
+				.requestMatchers("/flights/all").access(allOf(hasAuthority("flights:read"), isJosh()))
+				.requestMatchers("/flights/*/take-off").access(allOf(hasAuthority("flights:write"), isJosh()))
 				.requestMatchers("/flights").hasAuthority("flights:read")
 				.anyRequest().hasAuthority("flights:write")
 			)
