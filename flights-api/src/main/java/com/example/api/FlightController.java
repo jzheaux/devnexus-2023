@@ -32,7 +32,7 @@ public class FlightController {
 	}
 
 	@PutMapping("/{flightNumber}/taxi")
-	@PostAuthorize("returnObject.pilotId == authentication.name || authentication.name == 'josh'")
+	@PostAuthorize("returnObject.pilotId == authentication.name")
 	@Transactional
 	public Flight taxi(@PathVariable String flightNumber) {
 		Flight flight = this.flightRepository.findByFlightNumber(flightNumber);
